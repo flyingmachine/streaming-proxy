@@ -6,6 +6,8 @@
             [streaming-proxy.core :as sp]
             [org.httpkit.server :as hks]
             [org.httpkit.client :as hkc]
+            [org.httpkit.timer  :as hkt]
+            [clj-http.client :as client]
             [clojure.java.io :as io]
             [ring.middleware.multipart-params :as mp]
             [midje.sweet :refer :all]))
@@ -23,6 +25,7 @@
     {:status  200
      :headers {"Content-Type" "text/html"}
      :body    "default"}))
+
 (def endpoint-app (mp/wrap-multipart-params endpoint-handler))
 
 
@@ -47,6 +50,17 @@
   (when (.exists (io/file file))
     (io/delete-file file)))
 
+(def repl-proxy (atom nil))
+(def repl-endpoint (atom nil))
+(defn start-repl-servers
+  []
+  (start-server repl-endpoint endpoint-app)
+  (start-server repl-proxy (proxy-app (:port @repl-endpoint))))
+(defn stop-repl-servers
+  []
+  (stop-server repl-endpoint)
+  (stop-server repl-proxy))
+
 (let [proxy    (atom nil)
       endpoint (atom nil)]
   (with-state-changes [(before :facts (do (start-server endpoint endpoint-app)
@@ -63,8 +77,10 @@
                                 :filename "test-upload"}]})
       (slurp upload-dest) => "Kermit")
 
+    ;; TODO why doesn't this work with the httpkit client?
+    ;; TODO enhance to ensure that endpoint stream is passed along streaming
     (fact "handles streaming responses"
-      (let [res @(hkc/get (url proxy "/stream"))]
+      (let [res (client/get (url proxy "/stream"))]
         (String. (:body res))
         => (slurp (io/resource "walden"))))))
 

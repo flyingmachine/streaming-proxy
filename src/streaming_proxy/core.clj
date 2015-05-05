@@ -35,24 +35,37 @@
       (dissoc-headers "content-length")
       ensure-body-input-stream))
 
+(comment
+  (defn example-handler [request]
+    (hks/with-channel request channel
+      (hks/on-close channel (fn [status] (println "channel closed, " status)))
+      (loop [id 0]
+        (when (< id 10)
+          (schedule-task (* id 200) ;; send a message every 200ms
+                         (send! channel (str "message from server #" id) false)) ; false => don't close after send
+          (recur (inc id))))
+      (schedule-task 10000 (close channel)))))
+
+(comment (clojure.java.io/input-stream
+                      (if (< bytes-read byte-array-size)
+                        (byte-array (take bytes-read bytes))
+                        bytes)))
 
 (defn send-response
   "Send a response on an http-kit channel. Stream it if the response
   is streamable."
   [channel {:keys [body] :as res}]
+  (hks/on-close channel (fn [status] (println "channel closed, " status)))
   (if (string? body)
     (hks/send! channel res)
     (do (hks/send! channel (select-keys res [:status :headers]) false)
         (loop [bytes (byte-array byte-array-size)
                bytes-read (if body (.read body bytes) -1)]
-          (hks/close channel)
           (if (= -1 bytes-read)
             (hks/close channel)
             (do
-              (hks/send! channel (clojure.java.io/input-stream
-                                  (if (< bytes-read byte-array-size)
-                                    (byte-array (take bytes-read bytes))
-                                    bytes))
+              (hks/send! channel
+                         (java.io.ByteArrayInputStream. bytes 0 bytes-read)
                          false)
               (let [bytes (byte-array byte-array-size)]
                 (recur bytes (.read body bytes)))))))))
@@ -71,7 +84,6 @@
                            :url url}
                           (clean-req req))
                {:keys [status headers body] :as res} (client/request req)]
-           (println "PROXY RES" res)
            (if (>= status 400)
              (err-handler channel req :downstream res)
              (send-response channel res)))
