@@ -6,8 +6,6 @@
             [streaming-proxy.core :as sp]
             [org.httpkit.server :as hks]
             [org.httpkit.client :as hkc]
-            [org.httpkit.timer  :as hkt]
-            [clj-http.client :as client]
             [clojure.java.io :as io]
             [ring.middleware.multipart-params :as mp]
             [midje.sweet :refer :all]))
@@ -50,8 +48,8 @@
   (when (.exists (io/file file))
     (io/delete-file file)))
 
-(def repl-proxy (atom nil))
-(def repl-endpoint (atom nil))
+(defonce repl-proxy (atom nil))
+(defonce repl-endpoint (atom nil))
 (defn start-repl-servers
   []
   (start-server repl-endpoint endpoint-app)
@@ -60,6 +58,10 @@
   []
   (stop-server repl-endpoint)
   (stop-server repl-proxy))
+(defn restart-repl-servers
+  []
+  (stop-repl-servers)
+  (start-repl-servers))
 
 (let [proxy    (atom nil)
       endpoint (atom nil)]
@@ -80,8 +82,8 @@
     ;; TODO why doesn't this work with the httpkit client?
     ;; TODO enhance to ensure that endpoint stream is passed along streaming
     (fact "handles streaming responses"
-      (let [res (client/get (url proxy "/stream"))]
-        (String. (:body res))
+      (let [res @(hkc/get (url proxy "/stream"))]
+        (:body res)
         => (slurp (io/resource "walden"))))))
 
 (fact "GET")
