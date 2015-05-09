@@ -1,8 +1,8 @@
 # streaming-proxy
 
-A few lines of code that show how you to create a streaming proxy
-using [http-kit](http://www.http-kit.org/) and
-[clj-http](https://github.com/dakrone/clj-http).
+A [few lines of code](src/streaming_proxy/core.clj) that show how you
+to create a streaming proxy using [http-kit](http://www.http-kit.org/)
+and [clj-http](https://github.com/dakrone/clj-http).
 
 ## Why?
 
