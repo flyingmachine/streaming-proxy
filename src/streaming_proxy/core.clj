@@ -35,23 +35,14 @@
       (dissoc-headers "content-length")
       ensure-body-input-stream))
 
-(defn clean-response-headers
-  [res]
-  (-> (update-in res
-                 [:headers]
-                 #(into {} (map (fn [[k v]] [(keyword (clojure.string/lower-case k)) v])
-                                %)))
-      (dissoc-headers "transfer-encoding")))
-
 (defn send-response
   "Send a response on an http-kit channel. Stream it if the response
   is streamable."
-  [channel {:keys [body] :as res}]
+  [{:keys [body] :as res} channel]
   (let [res (dissoc-headers res "transfer-encoding")]
     (if (string? body)
       (hks/send! channel res)
-      (do (println (select-keys res [:status :headers]))
-          (hks/send! channel (select-keys res [:status :headers]) false)
+      (do (hks/send! channel (select-keys res [:status :headers]) false)
           (loop [bytes (byte-array byte-array-size)
                  bytes-read (if body (.read body bytes) -1)]
             (if (= -1 bytes-read)
@@ -65,9 +56,12 @@
 
 ;; TODO make pre checking that url exists
 (defn proxy-handler
-  [{err-handler :streaming-proxy-error-handler
-    url         :streaming-proxy-url
-    :or {err-handler (fn [& _])}
+  [{response-handler :streaming-proxy-response-handler
+    err-handler      :streaming-proxy-err-handler
+    url              :streaming-proxy-url
+    :or {response-handler identity
+         err-handler      (constantly nil)
+         err?             (constantly false)}
     :as req}]
   (hks/with-channel req channel
     (try (let [req (merge {:as :stream
@@ -77,8 +71,6 @@
                            :url url}
                           (clean-req req))
                {:keys [status headers body] :as res} (client/request req)]
-           (if (>= status 400)
-             (err-handler channel req :downstream res)
-             (send-response channel res)))
+           (-> res response-handler (send-response channel)))
          (catch java.net.ConnectException e
-           (err-handler channel req :downstream {:status 502 :body "Not reachable"} e)))))
+           (err-handler req channel :downstream {:status 502 :body "Not reachable"} e)))))

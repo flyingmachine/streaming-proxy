@@ -17,8 +17,10 @@
     "/upload" (do (.renameTo (get-in req [:params "file" :tempfile]) (io/file upload-dest))
                   {:status 200 :body ""})
     "/stream" (hks/with-channel req chan
-                (sp/send-response chan {:status 200
-                                        :body (io/input-stream (io/resource "walden"))}))
+                (sp/send-response {:status 200
+                                   :body (io/input-stream (io/resource "walden"))}
+                                  chan))
+    "/400"    {:status 400 :body "nope"}
     
     {:status  200
      :headers {"Content-Type" "text/html"}
@@ -27,15 +29,16 @@
 (def endpoint-app (mp/wrap-multipart-params endpoint-handler))
 
 
-(defn proxy-error-handler
-  [channel req source response & exception]
-  (println "error: " req :source response)
-  (sp/send-response channel response))
+(defn proxy-response-handler
+  [res]
+  (if (>= (:status res) 400)
+    (merge res {:body (str "Downstream error: " (slurp (io/reader (:body res))))})
+    res))
 
 (defn proxy-wrapper
   [handler endpoint-port]
   #(handler (merge % {:streaming-proxy-url (str "http://localhost:" endpoint-port (:uri %))
-                      :streaming-proxy-error-handler proxy-error-handler
+                      :streaming-proxy-response-handler proxy-response-handler
                       :timeout 1000})))
 
 (defn proxy-app
@@ -74,18 +77,21 @@
     ;; server puts file at location, test checks that file is there
     (fact "you can upload a file using POST"
       @(hkc/post (url proxy "/upload")
-                  {:multipart [{:name "file"
-                                :content (io/file (io/resource "test-upload"))
-                                :filename "test-upload"}]})
+                 {:multipart [{:name "file"
+                               :content (io/file (io/resource "test-upload"))
+                               :filename "test-upload"}]})
       (slurp upload-dest) => "Kermit")
 
-    ;; TODO why doesn't this work with the httpkit client?
-    ;; TODO enhance to ensure that endpoint stream is passed along streaming
+    ;; TODO test that endpoint response is sent to client as it's received
     (fact "handles streaming responses"
       (let [res @(hkc/get (url proxy "/stream"))]
         (:body res)
-        => (slurp (io/resource "walden"))))))
+        => (slurp (io/resource "walden"))))
 
-(fact "GET")
-(fact "PUT")
-(fact "DELETE")
+    (fact "can transform response"
+      (let [res @(hkc/get (url proxy "/400"))]
+        (:status res)
+        => 400
+
+        (:body res)
+        => "Downstream error: nope"))))
