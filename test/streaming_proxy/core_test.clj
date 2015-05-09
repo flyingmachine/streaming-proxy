@@ -94,4 +94,8 @@
         => 400
 
         (:body res)
-        => "Downstream error: nope"))))
+        => "Downstream error: nope"))
+
+    (fact "url has to exist"
+      (sp/proxy-handler {})
+      => (throws java.lang.AssertionError "Assert failed: url"))))

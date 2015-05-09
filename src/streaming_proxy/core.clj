@@ -54,8 +54,11 @@
                 (let [bytes (byte-array byte-array-size)]
                   (recur bytes (.read body bytes))))))))))
 
-;; TODO make pre checking that url exists
 (defn proxy-handler
+  "Creates a ring-compatible handler that proxies requests using
+  clj-http. Responses can optionally be handled
+  with :streaming-proxy-response-handler, which accepts clj-http's
+  response object as an argument."
   [{response-handler :streaming-proxy-response-handler
     err-handler      :streaming-proxy-err-handler
     url              :streaming-proxy-url
@@ -63,6 +66,7 @@
          err-handler      (constantly nil)
          err?             (constantly false)}
     :as req}]
+  {:pre [url]}
   (hks/with-channel req channel
     (try (let [req (merge {:as :stream
                            :timeout 30000 ;ms
