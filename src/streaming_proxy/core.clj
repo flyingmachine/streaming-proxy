@@ -1,7 +1,6 @@
 (ns streaming-proxy.core
   "Performs request forwarding and response handling"
   (:require [org.httpkit.server :as hks]
-            [org.httpkit.client :as hkc]
             [clj-http.client :as client]
             [ring.util.io]))
 
