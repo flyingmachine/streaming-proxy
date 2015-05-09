@@ -17,6 +17,11 @@ client. This can be a problem if you need large volumes of data to go
 through the proxy. By using clj-http, you can send the downstream
 server's response as it reaches the proxy server.
 
+Using the two together proved a little tricky, however, with a bunch
+of little tweaks to the requests and responses (and a fun excursion
+into the land of byte buffers) so that http-kit and clj-http would
+play nicely together. This code takes care of all that for you.
+
 ## Usage
 
 `streaming-proxy.core/proxy-handler` is a ring-compatible request
