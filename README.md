@@ -29,7 +29,10 @@ handler that takes care of sending a request using clj-http and
 handing the response back to http-kit. It expects a value for
 `:streaming-proxy-url` in the ring request; therefore, you'll need to
 create middleware that adds `:streaming-proxy-url` to the ring
-request. Here's code that will create an example application:
+request. Below is code that will create an example application. The
+code was taken from
+[the Midje tests](test/streaming_proxy/core_test.clj), and you might
+find it useful to make your way through those.
 
 ```clojure
 (defn proxy-response-handler
