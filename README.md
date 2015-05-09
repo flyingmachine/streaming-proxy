@@ -59,6 +59,11 @@ assocs in the `:timeout` key, and this is used by `clj-http`. The ring
 request map is passed to `clj-http` with only a few modifications; you
 can control `clj-http` by modifying the request map.
 
+## TODO
+
+* Address the fact that `streaming-proxy.core/byte-array-size` is a
+  magic number. Not sure how to handle it, though.
+
 ## License
 
 Copyright © 2015 Daniel Higginbothama
