@@ -63,8 +63,7 @@
     err-handler      :streaming-proxy-err-handler
     url              :streaming-proxy-url
     :or {response-handler identity
-         err-handler      (constantly nil)
-         err?             (constantly false)}
+         err-handler      (constantly nil)}
     :as req}]
   {:pre [url]}
   (hks/with-channel req channel
