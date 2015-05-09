@@ -13,8 +13,8 @@ could be useful to you. Also check out
 
 http-kit can be used as a proxy out of the box, but it has to fully
 receive responses from downstream servers before sending them to the
-client. This can be a problem if you want the proxy to send large
-volumes of data. By using clj-http, you can send the downstream
+client. This can be a problem if you need large volumes of data to go
+through the proxy. By using clj-http, you can send the downstream
 server's response as it reaches the proxy server.
 
 ## Usage
